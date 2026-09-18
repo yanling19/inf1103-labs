@@ -41,6 +41,7 @@ def main():
     inventory = 0
     failed_entries = 0
     total_deliveries = 0
+    tax_amount = 0
     exit_program = False
 
     while not exit_program:
@@ -53,6 +54,7 @@ def main():
             inventory = process_delivery(inventory, audit)
             total_deliveries += 1
             tax = calculate_tax(inventory)
+            tax_amount += tax
 
             if inventory > MAX_CAPACITY:
                 print("Warning: Inventory exceeds maximum capacity of 500 units.")
