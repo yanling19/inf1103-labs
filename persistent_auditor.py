@@ -60,9 +60,6 @@ def main():
     tax_amount = 0
     exit_program = False
 
-    print("Inventory:", inventory)
-    print("Transaction History:", transaction_history)
-    
     while not exit_program:
         audit = get_valid_input()
         if audit == "quit":
@@ -71,6 +68,7 @@ def main():
             failed_entries += 1
         else:
             inventory = process_delivery(inventory, audit)
+            transaction_history.append(audit)
             total_deliveries += 1
             tax = calculate_tax(inventory)
             tax_amount += tax
@@ -78,6 +76,8 @@ def main():
             if inventory > MAX_CAPACITY:
                 print("Warning: Inventory exceeds maximum capacity of 500 units.")
                 exit_program = True
+
+    print("Transaction History:", transaction_history)
 
     generate_report(inventory, failed_entries)
 
