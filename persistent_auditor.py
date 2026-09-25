@@ -40,18 +40,25 @@ def load_inventory():
         with open(INVENTORY_FILE, "r") as file:
             lines = file.readlines()
 
-            inventory = int(lines[0].strip())
             transaction_history = []
 
-            for line in lines[1:]:
-                transaction_history.append(line.strip())
+            for line in lines:
+                transaction = line.strip()
+                transaction_history.append(transaction)
+
+            inventory = 0
+
+            for transaction in transaction_history:
+                parts = transaction.split(",")
+                quantity = int(parts[-1].strip())
+                inventory += quantity
+                
         return inventory, transaction_history
     except FileNotFoundError:
         return 0, []
 
 def save_inventory(inventory, transaction_history):
     with open(INVENTORY_FILE, "w") as file:
-        file.write(str(inventory) + "\n")
         for transaction in transaction_history:
             file.write(transaction + "\n")
 
@@ -70,7 +77,6 @@ def main():
         audit = get_valid_input()
         if audit == "quit":
             save_inventory(inventory, transaction_history)
-            print("Order successfully saved to inventory.txt")
             exit_program = True
 
         elif audit is None:
@@ -87,15 +93,19 @@ def main():
             new_transaction = f"{transaction_number}, {product_name}, {product_quantity}"
             transaction_history.append(new_transaction)
             inventory = process_delivery(inventory, product_quantity)
-            total_deliveries += 1
-            tax = calculate_tax(product_quantity)
-            tax_amount += tax
-            print("New Order Added:")
-            print(new_transaction)
-
             if inventory > MAX_CAPACITY:
                 print("Warning: Inventory exceeds maximum capacity of 500 units.")
-                exit_program = True
+                exit_program = True           
+
+            else: 
+                total_deliveries += 1
+                tax = calculate_tax(product_quantity)
+                tax_amount += tax
+                print("New Order Added:")
+                print(new_transaction)
+                save_inventory(inventory, transaction_history)
+                print("Order successfully saved to inventory.txt")
+            
 
 
 
