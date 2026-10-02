@@ -1,115 +1,162 @@
 import json
-MAX_CAPACITY = 500
-TAX_RATE = 0.1
 INVENTORY_FILE = "inventory.json"
 
-def get_valid_input():
-    while True:
-        product_name = input("Enter Product Name (type 'quit' to stop): ")
-        if product_name.lower() == 'quit':
-            return "quit"
-
-        product_quantity = input("Enter Product Quantity: ")
-        
-        if not product_quantity.isdigit():
-            print("Invalid input. Please enter a valid number.")
-            return None
-
-        product_quantity = int(product_quantity)
-
-        if product_quantity < 0:
-            print("Product quantity cannot be negative. Please enter a valid number.")
-            return None
-
-        else:
-            return product_name, product_quantity
-
-def process_delivery(current_total, new_value):
-    new_total = current_total + new_value
-    return new_total
-
-def calculate_tax(amount):
-    tax = amount * TAX_RATE
-    return tax
-
-def generate_report(total_units, failed_attempts):
-    print("Total Units Processed:", total_units)
-    print("Number of Failed/Rejected Entries:", failed_attempts)
-
 def load_inventory():
+    inventory = []
+
     try:
         with open(INVENTORY_FILE, "r") as file:
             inventory = json.load(file)
 
-            transaction_history = []
-
-            for line in inventory:
-                transaction = f"{line['id']}, {line['name']}, {line['stock']}"
-                transaction_history.append(transaction)
-
-            inventory = 0
-
-            for transaction in transaction_history:
-                parts = transaction.split(",")
-                quantity = int(parts[-1].strip())
-                inventory += quantity
-        print("inventory.json found.")
-        print("Inventory loaded successfully.")                
-        return inventory, transaction_history
+        status = "success"               
+    
     except FileNotFoundError:
-        return 0, []
+        status = "not found"
+    
+    return inventory, status
 
-def save_inventory(inventory, transaction_history):
+def save_inventory(inventory):
     with open(INVENTORY_FILE, "w") as file:
-        for transaction in transaction_history:
-            file.write(transaction + "\n")
+        json.dump(inventory, file, indent=4)
+        print("Inventory saved successfully.")
+
+def search_product(inventory, product_id):
+    for product in inventory:
+        if product["id"] == product_id:
+            return product
+        
+    return None
+
+def add_product(inventory, product_id, product_name, price, stock):
+    if search_product(inventory, product_id) is not None:
+        return False
+
+    product = {
+        "id": product_id,
+        "name": product_name,
+        "price": price,
+        "stock": stock
+    }
+
+    inventory.append(product)
+    return True
+
+def update_stock(inventory, product_id, new_stock):
+    product = search_product(inventory, product_id)
+
+    if product is None:    
+        return False
+
+    product["stock"] = new_stock
+    return True
+
+def display_all(inventory):
+    print("\nCurrent Inventory")
+    print("-----------------------------")
+
+    for product in inventory:
+        print(f"ID:{product['id']}|"
+              f"Name:{product['name']}|"
+              f"Price:${product['price']:.2f}|"
+              f"Stock:{product['stock']}"
+        )
+
+    print("--------------------------------")
 
 def main():
-    inventory, transaction_history = load_inventory()
-    failed_entries = 0
-    total_deliveries = 0
-    tax_amount = 0
+    print("====================================")
+    print("INVENTORY MANAGEMENT SYSTEM")
+    print("====================================")
+
+    inventory, status = load_inventory()
+
+    if status == "success":
+        print("\ninventory.json found.")
+        print("Inventory loaded successfully.")
+    else:
+        print("\ninventory.json not found.")
+        print("Starting with an empty inventory.")
+
+    print("\n--------MENU--------")
+    print("1. Display All Products")
+    print("2. Add Product")
+    print("3. Update Stock")
+    print("4. Search Product")
+    print("5. Save Inventory")
+    print("6. Exit")
+    print("--------------------")
+
     exit_program = False
 
-    print("Current Orders:")
-    for transaction in transaction_history:
-        print(transaction)
-
     while not exit_program:
-        audit = get_valid_input()
-        if audit == "quit":
-            save_inventory(inventory, transaction_history)
+        option = input("\nEnter option: ")
+
+        if option == "1":
+            display_all(inventory)
+
+        elif option == "2":
+            print("\nAdd New Product")
+
+            product_id = input("Product ID: ")
+            product_name = input("Product Name: ")
+            price = float(input("Price: "))
+            stock = int(input("Stock Quantity: "))
+
+            if add_product(inventory, product_id, product_name, price, stock):
+                print("\nProduct added successfully!")
+                save_inventory(inventory)
+            else:
+                print("\nProduct already exists.")
+
+        elif option == "3":
+            print("\nUpdate Stock")
+
+            product_id = input("Enter Product ID: ")
+            product = search_product(inventory, product_id)
+            if product is not None:
+                print("\nProduct Found")
+                print("Name: ",product["name"])
+                print("Current Stock: ",product["stock"])
+
+                new_stock = int(input("New Stock Quantity: "))
+
+                update_stock(inventory, product_id, new_stock)
+                print("\nStock updated successfully!")
+            else:
+                print("\nProduct not found.")
+
+        elif option == "4":
+            print("\nSearch Product")
+
+            product_id = input("Enter Product ID: ")
+            product = search_product(inventory, product_id)
+
+            if product is not None:
+                print("\nProduct Found:")
+                print("-----------------------------")
+                print("ID: ",product["id"])
+                print("Name: ",product["name"])
+                print("Price: $",product["price"])
+                print("Stock: ",product["stock"])
+                print("-----------------------------")
+            else:
+                print("\nProduct not found.")
+
+        elif option == "5":
+            print("\nSaving inventory...")
+            save_inventory(inventory)
+
+        elif option == "6":
+            print("\nSaving inventory before exit...")
+            save_inventory(inventory)
+
+            print("\nThank you for using Inventory Management System.")
+            print("Program terminated.\n")
+
             exit_program = True
 
-        elif audit is None:
-            failed_entries += 1
-
         else:
-            product_name, product_quantity = audit
-            if transaction_history:
-                last_transaction = transaction_history[-1]
-                transaction_number = int(last_transaction.split(",")[0]) + 1
-            else:
-                transaction_number = 1001
-
-            new_transaction = f"{transaction_number}, {product_name}, {product_quantity}"
-            transaction_history.append(new_transaction)
-            inventory = process_delivery(inventory, product_quantity)
-            if inventory > MAX_CAPACITY:
-                print("Warning: Inventory exceeds maximum capacity of 500 units.")
-                exit_program = True           
-
-            else: 
-                total_deliveries += 1
-                tax = calculate_tax(product_quantity)
-                tax_amount += tax
-                print("New Order Added:")
-                print(new_transaction)
-                save_inventory(inventory, transaction_history)
-                print("Order successfully saved to inventory.txt")
-            
-
-
+            print("\nInvalid option. Please try again.")
 
 if __name__ == "__main__":
     main()
