@@ -1,6 +1,7 @@
+import json
 MAX_CAPACITY = 500
 TAX_RATE = 0.1
-INVENTORY_FILE = "inventory.txt"
+INVENTORY_FILE = "inventory.json"
 
 def get_valid_input():
     while True:
@@ -38,12 +39,12 @@ def generate_report(total_units, failed_attempts):
 def load_inventory():
     try:
         with open(INVENTORY_FILE, "r") as file:
-            lines = file.readlines()
+            inventory = json.load(file)
 
             transaction_history = []
 
-            for line in lines:
-                transaction = line.strip()
+            for line in inventory:
+                transaction = f"{line['id']}, {line['name']}, {line['stock']}"
                 transaction_history.append(transaction)
 
             inventory = 0
@@ -52,7 +53,8 @@ def load_inventory():
                 parts = transaction.split(",")
                 quantity = int(parts[-1].strip())
                 inventory += quantity
-                
+        print("inventory.json found.")
+        print("Inventory loaded successfully.")                
         return inventory, transaction_history
     except FileNotFoundError:
         return 0, []
