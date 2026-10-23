@@ -67,70 +67,43 @@ class Inventory:
             )
 
         print("--------------------------------")
-        
+
 INVENTORY_FILE = "inventory.json"
 
 def load_inventory():
-    inventory = []
+    inventory = Inventory()
 
     try:
         with open(INVENTORY_FILE, "r") as file:
-            inventory = json.load(file)
+            data = json.load(file)
 
-        status = "success"               
-    
+        for item in data:
+            product = Product(
+                item["id"],
+                item["name"],
+                item["price"],
+                item["stock"]
+            )
+
+            inventory.add_product(product)
+
+        status = "success"
+
     except FileNotFoundError:
         status = "not found"
-    
+
     return inventory, status
 
 def save_inventory(inventory):
+    data = []
+
+    for product in inventory.products:
+        data.append(product.to_dictionary())
+
     with open(INVENTORY_FILE, "w") as file:
-        json.dump(inventory, file, indent=4)
-        print("Inventory saved successfully.")
+        json.dump(data, file, indent=4)
 
-def search_product(inventory, product_id):
-    for product in inventory:
-        if product["id"] == product_id:
-            return product
-        
-    return None
-
-def add_product(inventory, product_id, product_name, price, stock):
-    if search_product(inventory, product_id) is not None:
-        return False
-
-    product = {
-        "id": product_id,
-        "name": product_name,
-        "price": price,
-        "stock": stock
-    }
-
-    inventory.append(product)
-    return True
-
-def update_stock(inventory, product_id, new_stock):
-    product = search_product(inventory, product_id)
-
-    if product is None:    
-        return False
-
-    product["stock"] = new_stock
-    return True
-
-def display_all(inventory):
-    print("\nCurrent Inventory")
-    print("-----------------------------")
-
-    for product in inventory:
-        print(f"ID:{product['id']}|"
-              f"Name:{product['name']}|"
-              f"Price:${product['price']:.2f}|"
-              f"Stock:{product['stock']}"
-        )
-
-    print("--------------------------------")
+    print("Inventory saved successfully.")
 
 def main():
     print("====================================")
