@@ -36,6 +36,38 @@ class Product:
             "stock": self.__stock
         }
 
+class Inventory:
+    def __init__(self):
+        self.products = []
+
+    def add_product(self, product):
+        if self.search_product(product.get_product_id()) is not None:
+            return False
+
+        self.products.append(product)
+        return True
+
+    def search_product(self, product_id):
+        for product in self.products:
+            if product.get_product_id() == product_id:
+                return product
+
+        return None
+
+    def display_all(self):
+        print("\nCurrent Inventory")
+        print("--------------------------------")
+
+        for product in self.products:
+            print(
+                f"ID: {product.get_product_id()} | "
+                f"Name: {product.get_name()} | "
+                f"Price: ${product.get_price():.2f} | "
+                f"Stock: {product.get_stock()}"
+            )
+
+        print("--------------------------------")
+        
 INVENTORY_FILE = "inventory.json"
 
 def load_inventory():
