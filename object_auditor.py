@@ -119,22 +119,23 @@ def main():
         print("\ninventory.json not found.")
         print("Starting with an empty inventory.")
 
-    print("\n--------MENU--------")
-    print("1. Display All Products")
-    print("2. Add Product")
-    print("3. Update Stock")
-    print("4. Search Product")
-    print("5. Save Inventory")
-    print("6. Exit")
-    print("--------------------")
-
     exit_program = False
 
     while not exit_program:
+
+        print("\n--------MENU--------")
+        print("1. Display All Products")
+        print("2. Add Product")
+        print("3. Update Stock")
+        print("4. Search Product")
+        print("5. Save Inventory")
+        print("6. Exit")
+        print("--------------------")
+
         option = input("\nEnter option: ")
 
         if option == "1":
-            display_all(inventory)
+            inventory.display_all()
 
         elif option == "2":
             print("\nAdd New Product")
@@ -144,9 +145,15 @@ def main():
             price = float(input("Price: "))
             stock = int(input("Stock Quantity: "))
 
-            if add_product(inventory, product_id, product_name, price, stock):
+            product = Product(
+                product_id,
+                product_name,
+                price,
+                stock
+            )
+
+            if inventory.add_product(product):
                 print("\nProduct added successfully!")
-                save_inventory(inventory)
             else:
                 print("\nProduct already exists.")
 
@@ -154,16 +161,23 @@ def main():
             print("\nUpdate Stock")
 
             product_id = input("Enter Product ID: ")
-            product = search_product(inventory, product_id)
+
+            product = inventory.search_product(product_id)
+
             if product is not None:
+
                 print("\nProduct Found")
-                print("Name: ",product["name"])
-                print("Current Stock: ",product["stock"])
+                print("Name:", product.get_name())
+                print("Current Stock:", product.get_stock())
 
-                new_stock = int(input("New Stock Quantity: "))
+                new_stock = int(
+                    input("New Stock Quantity: ")
+                )
 
-                update_stock(inventory, product_id, new_stock)
+                product.update_stock(new_stock)
+
                 print("\nStock updated successfully!")
+
             else:
                 print("\nProduct not found.")
 
@@ -171,16 +185,16 @@ def main():
             print("\nSearch Product")
 
             product_id = input("Enter Product ID: ")
-            product = search_product(inventory, product_id)
+
+            product = inventory.search_product(product_id)
 
             if product is not None:
+
                 print("\nProduct Found:")
-                print("-----------------------------")
-                print("ID: ",product["id"])
-                print("Name: ",product["name"])
-                print("Price: $",product["price"])
-                print("Stock: ",product["stock"])
-                print("-----------------------------")
+                print("----------------------")
+                product.display_information()
+                print("----------------------")
+
             else:
                 print("\nProduct not found.")
 
