@@ -1,6 +1,13 @@
 import json
+from abc import ABC, abstractmethod
 
-class Product:
+class CanBeShipped(ABC):
+
+    @abstractmethod
+    def calculate_shipping_cost(self):
+        pass
+
+class Product(ABC):
     def __init__(self, product_id, name, price, stock):
         self.__product_id = product_id
         self.__name = name
@@ -16,6 +23,10 @@ class Product:
         print(f"Price: ${self.__price:.2f}")
         print(f"Stock: {self.__stock}")
 
+    @abstractmethod
+    def get_fulfilment_info(self):
+        pass
+
     def get_product_id(self):
         return self.__product_id
 
@@ -28,13 +39,58 @@ class Product:
     def get_stock(self):
         return self.__stock
 
+    @abstractmethod
     def to_dictionary(self):
-        return {
-            "id": self.__product_id,
-            "name": self.__name,
-            "price": self.__price,
-            "stock": self.__stock
+        pass
+
+class PhysicalProduct(Product, CanBeShipped):
+    def __init__(self, product_id, name, price, stock, weight):
+        super().__init__(product_id, name, price, stock)
+        self.__weight = weight
+
+    def display_information(self):
+        super().display_information()
+        print(f"Weight: {self.__weight:.2f} kg")
+    
+    def get_fulfilment_info(self):
+        return "This product requires physical shipping"
+    
+    def calculate_shipping_cost(self):
+        return 5.00 + (self.__weight * 2.00)
+
+    def to_dictionary(self):
+        data = {
+            "type": "physical",
+            "id": self.get_product_id(),
+            "name": self.get_name(),
+            "price": self.get_price(),
+            "stock": self.get_stock(),
+            "weight": self.__weight
         }
+        return data
+
+class DigitalProduct(Product):
+    def __init__(self, product_id, name, price, stock, download_size):
+        super().__init__(product_id, name, price, stock)
+        self.__download_size = download_size
+
+    def display_information(self):
+        super().display_information()
+        print(f"Download Size: {self.__download_size:.2f} MB")
+    
+    def get_fulfilment_info(self):
+        return "This product is delivered digitally"
+    
+    def to_dictionary(self):
+        data = {
+            "type": "digital",
+            "id": self.get_product_id(),
+            "name": self.get_name(),
+            "price": self.get_price(),
+            "stock": self.get_stock(),
+            "download_size": self.__download_size
+        }
+        return data
 
 class Inventory:
     def __init__(self):
@@ -58,13 +114,15 @@ class Inventory:
         print("\nCurrent Inventory")
         print("--------------------------------")
 
+        if not self.products:
+            print("No products in inventory.")
+
         for product in self.products:
-            print(
-                f"ID: {product.get_product_id()} | "
-                f"Name: {product.get_name()} | "
-                f"Price: ${product.get_price():.2f} | "
-                f"Stock: {product.get_stock()}"
-            )
+            product.display_information()
+            print(f"Fulfilment: {product.get_fulfilment_info()}")
+
+        if isinstance(product, CanBeShipped):
+            print(f"Shipping Cost: ${product.calculate_shipping_cost():.2f}")
 
         print("--------------------------------")
 
@@ -78,12 +136,29 @@ def load_inventory():
             data = json.load(file)
 
         for item in data:
-            product = Product(
-                item["id"],
-                item["name"],
-                item["price"],
-                item["stock"]
-            )
+            product_type = item.get("type", "physical")
+
+            if product_type == "physical":
+                product = PhysicalProduct(
+                    item["id"],
+                    item["name"],
+                    item["price"],
+                    item["stock"],
+                    item.get("weight", 0.0)
+                )
+            elif product_type == "digital":
+                product = DigitalProduct(
+                    item["id"],
+                    item["name"],
+                    item["price"],
+                    item["stock"],
+                    item.get("download_size", 0.0)
+                )
+            else:
+                print(f"Skipping product {item.get('id', 'unknown')}:"
+                      f" Unknown product type '{product_type}'."
+                )
+                continue
 
             inventory.add_product(product)
 
@@ -139,18 +214,58 @@ def main():
 
         elif option == "2":
             print("\nAdd New Product")
+            print("1. Physical Product")
+            print("2. Digital Product")
+
+            product_type = input("Choose product type (1 or 2): ")
+
+            if product_type not in ("1", "2"):
+                print("\nInvalid product type.")
+                continue
 
             product_id = input("Product ID: ")
             product_name = input("Product Name: ")
-            price = float(input("Price: "))
-            stock = int(input("Stock Quantity: "))
 
-            product = Product(
-                product_id,
-                product_name,
-                price,
-                stock
-            )
+            try:
+                price = float(input("Product Price: "))
+                stock = int(input("Stock Quantity: "))
+
+                if price < 0 or stock < 0:
+                    print("\nPrice and stock must be non-negative.")
+                    continue
+
+                if product_type == "1":
+                    weight = float(input("Product Weight (kg): "))
+
+                    if weight < 0:
+                        print("\nWeight must be non-negative.")
+                        continue
+
+                    product = PhysicalProduct(
+                        product_id,
+                        product_name,
+                        price,
+                        stock,
+                        weight
+                    )
+
+                else:
+                    download_size = float(input("Download Size (MB): "))
+
+                    if download_size < 0:
+                        print("\nDownload size must be non-negative.")
+                        continue
+
+                    product = DigitalProduct(
+                        product_id,
+                        product_name,
+                        price,
+                        stock,
+                        download_size
+                    )
+            except ValueError:
+                print("\nInvalid input. Enter valid numbers.")
+                continue
 
             if inventory.add_product(product):
                 print("\nProduct added successfully!")
@@ -170,13 +285,21 @@ def main():
                 print("Name:", product.get_name())
                 print("Current Stock:", product.get_stock())
 
-                new_stock = int(
-                    input("New Stock Quantity: ")
-                )
+                try:
+                    new_stock = int(
+                        input("New Stock Quantity: ")
+                    )
 
-                product.update_stock(new_stock)
+                    if new_stock < 0:
+                        print("\nStock quantity must be non-negative.")
+                        continue
 
-                print("\nStock updated successfully!")
+                    product.update_stock(new_stock)
+                    print("\nStock updated successfully!")
+
+                except ValueError:
+                    print("\nInvalid input. Enter a valid integer for stock quantity.")
+                    continue
 
             else:
                 print("\nProduct not found.")
@@ -193,6 +316,11 @@ def main():
                 print("\nProduct Found:")
                 print("----------------------")
                 product.display_information()
+                print(f"Fulfilment: {product.get_fulfilment_info()}")
+
+                if isinstance(product, CanBeShipped):
+                    print(f"Shipping Cost: ${product.calculate_shipping_cost():.2f}")
+                    
                 print("----------------------")
 
             else:
